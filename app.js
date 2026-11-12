@@ -16,7 +16,7 @@ let removedIds = new Set();
 let publishedHiddenSamples = [];
 const samples = [...effects, characterWalk];
 const sampleIds = new Set(samples.map(asset => asset.id));
-let selected = effects[0];
+let selected;
 let filter = '';
 let frame = 0;
 let playing = true;
@@ -36,7 +36,9 @@ function status(message) {
 
 function assets() {
   const custom = new Map([...published, ...local].map(asset => [asset.id, asset]));
-  return [...samples.filter(asset => !publishedHiddenSamples.includes(asset.id) || removedIds.has('restore:' + asset.id)), ...custom.values()]
+  const availableSamples = publicLibrary ? [] : samples.filter(asset =>
+    !publishedHiddenSamples.includes(asset.id) || removedIds.has('restore:' + asset.id));
+  return [...availableSamples, ...custom.values()]
     .filter(asset => !removedIds.has(asset.id));
 }
 
@@ -80,7 +82,7 @@ function gallery() {
   get('count').textContent = `${visible.length} / ${all.length}`;
   if (!visible.length) {
     const message = document.createElement('p');
-    message.textContent = 'ไม่พบ Asset';
+    message.textContent = !libraryReady ? 'กำลังโหลดคลัง…' : all.length ? 'ไม่พบ Asset' : 'ยังไม่มี Asset ในคลัง';
     get('gallery').replaceChildren(message);
     return;
   }
@@ -899,7 +901,8 @@ get('save-library').onclick = () => {
 };
 
 get('add').disabled = get('load-library').disabled = get('save-library').disabled = true;
-select(assets().find(asset => asset.id === location.hash.slice(1)) || effects[0]);
+const initialAssets = assets();
+select(initialAssets.find(asset => asset.id === location.hash.slice(1)) || initialAssets[0]);
 gallery();
 requestAnimationFrame(tick);
 loadInitial();

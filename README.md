@@ -1,6 +1,6 @@
-# Pixel Vault Ver. 1.0.0
+# Pixel Vault Ver. 1.0.1
 
-เว็บคลัง Pixel FX แบบ static ใช้ Canvas แสดงพรีวิวและสร้าง PNG โปร่งใส มีเอฟเฟกต์ตัวอย่าง 8 แบบ และเพิ่ม sprite sheet ของตัวเองได้ เปิดดูได้ทันทีด้วย `index.html` โดยไม่ต้องติดตั้ง dependency หรือ build
+เว็บคลัง Pixel FX แบบ static ใช้ Canvas แสดงพรีวิวและสร้าง PNG โปร่งใส หน้าเว็บสาธารณะแสดงเฉพาะ Asset ที่เผยแพร่จาก `assets/` และ `library.json` ตัวอย่างเอฟเฟกต์และ Character Walk เปิดใช้ได้ในโหมดจัดการบนเครื่อง
 
 ## ทดลองในเครื่อง
 
