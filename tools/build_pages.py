@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import re
 import shutil
 import struct
 
@@ -12,6 +13,8 @@ ROOT = Path(__file__).resolve().parents[1]
 SITE_FILES = (".nojekyll", "index.html", "style.css", "effects.js", "character.js", "app.js")
 DIRECTIONS = ("Down", "Left", "Right", "Up")
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+STRIP_NAME = re.compile(r"(?P<name>.+)_(?P<frames>[1-9][0-9]*)frames_(?P<width>[1-9][0-9]*)x(?P<height>[1-9][0-9]*)", re.I)
+WALK_NAME = re.compile(r"(?P<group>.+)_walk_(?P<direction>down|left|right|top|up)", re.I)
 
 
 def png_size(path):
@@ -47,7 +50,10 @@ def catalog_entries(path):
     if not isinstance(options, dict):
         raise ValueError("the JSON sidecar must contain an object")
 
+    strip = STRIP_NAME.fullmatch(path.stem) if not options.keys() & {"layout", "frameWidth", "frameHeight", "frames"} else None
     default_layout = "walk4" if (image_width, image_height) == (256, 256) else "single"
+    if strip:
+        default_layout = "sheet"
     if "frameWidth" in options or "frameHeight" in options:
         default_layout = "sheet"
     layout = options.get("layout", default_layout)
@@ -56,28 +62,46 @@ def catalog_entries(path):
     if layout == "single" and ("frameWidth" in options or "frameHeight" in options):
         raise ValueError("single uses the full image; use sheet for a custom grid")
 
-    width = integer(options, "frameWidth", 64 if layout == "walk4" else image_width, 512)
-    height = integer(options, "frameHeight", 64 if layout == "walk4" else image_height, 512)
-    if image_width % width or image_height % height:
+    source_width, source_height = image_width, image_height
+    walk = None
+    default_name = path.stem[:80]
+    if strip:
+        frames = integer({"frames": int(strip["frames"])}, "frames", 1, 120)
+        if image_width % frames:
+            raise ValueError("PNG width must be divisible by the number of frames in its filename")
+        width = integer({"width": int(strip["width"])}, "width", 64, 512)
+        height = integer({"height": int(strip["height"])}, "height", 64, 512)
+        source_width = image_width // frames
+        default_name = strip["name"].replace("_", " ")[:80]
+        walk = WALK_NAME.fullmatch(strip["name"])
+        if walk:
+            direction = "Up" if walk["direction"].lower() == "top" else walk["direction"].title()
+            default_name = f"{walk['group'].replace('_', ' ').title()[:64]} Walk {direction}"
+    else:
+        width = source_width = integer(options, "frameWidth", 64 if layout == "walk4" else image_width, 512)
+        height = source_height = integer(options, "frameHeight", 64 if layout == "walk4" else image_height, 512)
+    if image_width % source_width or image_height % source_height:
         raise ValueError("frameWidth and frameHeight must divide the PNG dimensions exactly")
-    columns, rows = image_width // width, image_height // height
+    columns, rows = image_width // source_width, image_height // source_height
     if layout == "walk4" and rows != len(DIRECTIONS):
         raise ValueError("walk4 needs exactly four rows ordered Down, Left, Right, Up")
     capacity = columns if layout == "walk4" else columns * rows
     frames = integer(options, "frames", capacity, min(120, capacity))
 
-    name = label(options, "name", path.stem[:80], 80)
-    pivot = options.get("pivot", "feet" if layout == "walk4" else "center")
+    name = label(options, "name", default_name, 80)
+    pivot = options.get("pivot", "feet" if layout == "walk4" or walk else "center")
     loop = options.get("loop", frames > 1)
     if pivot not in ("center", "feet") or type(loop) is not bool:
         raise ValueError('pivot must be "center" or "feet", and loop must be true or false')
     asset = {
         "pngFile": path.name,
-        "category": label(options, "category", "Characters" if layout == "walk4" else "Sprites", 30),
+        "category": label(options, "category", "Characters" if layout == "walk4" or walk else "Sprites", 30),
         "width": width, "height": height, "frames": frames,
         "fps": integer(options, "fps", 8, 60), "ppu": integer(options, "ppu", 64, 1024),
         "loop": loop, "pivot": pivot,
     }
+    if strip:
+        asset.update(sourceWidth=source_width, sourceHeight=source_height)
     source_id = hashlib.sha256(path.name.encode("utf-8")).hexdigest()[:20]
     if layout == "walk4":
         group = label(options, "group", name, 80)
@@ -86,7 +110,8 @@ def catalog_entries(path):
                  start=row * columns, group=group)
             for row, direction in enumerate(DIRECTIONS)
         ]
-    group = label(options, "group", name, 80) if "group" in options else ""
+    default_group = walk["group"].replace("_", " ").title()[:80] if walk else ""
+    group = label(options, "group", default_group, 80) if "group" in options or default_group else ""
     return [dict(asset, id=f"custom-png-{source_id}", name=name, start=0, group=group)]
 
 

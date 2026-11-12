@@ -57,10 +57,15 @@ function renderFrame(canvas, asset, index, options) {
     drawEffect(ctx, asset, index, palettes[options.palette] || asset.colors, options.seed);
   } else {
     const image = images.get(asset.image);
-    const columns = image.width / asset.width;
+    const sourceWidth = asset.sourceWidth ?? asset.width;
+    const sourceHeight = asset.sourceHeight ?? asset.height;
+    const columns = image.width / sourceWidth;
+    const scale = Math.min(asset.width / sourceWidth, asset.height / sourceHeight);
+    const drawWidth = Math.max(1, Math.round(sourceWidth * scale));
+    const drawHeight = Math.max(1, Math.round(sourceHeight * scale));
     index += asset.start || 0;
-    ctx.drawImage(image, (index % columns) * asset.width, Math.floor(index / columns) * asset.height,
-      asset.width, asset.height, 0, 0, asset.width, asset.height);
+    ctx.drawImage(image, (index % columns) * sourceWidth, Math.floor(index / columns) * sourceHeight,
+      sourceWidth, sourceHeight, Math.floor((asset.width - drawWidth) / 2), asset.height - drawHeight, drawWidth, drawHeight);
   }
   ctx.restore();
 }
@@ -382,6 +387,8 @@ async function checkAsset(raw, allowPublishedPng = false) {
     throw new Error('ข้อมูล sprite sheet ไม่ถูกต้อง หรือ PNG มีขนาดเกิน 10 MB');
   }
   const { id, name, category, width, height, frames, fps } = raw;
+  const sourceWidth = pngFile ? raw.sourceWidth ?? width : width;
+  const sourceHeight = pngFile ? raw.sourceHeight ?? height : height;
   const start = raw.start ?? 0;
   const group = typeof raw.group === 'string' ? raw.group.trim().slice(0, 80) : '';
   const decoded = images.get(image) || new Image();
@@ -390,13 +397,14 @@ async function checkAsset(raw, allowPublishedPng = false) {
     await decoded.decode();
   }
   if (!decoded.width || !decoded.height || decoded.width > 8192 || decoded.height > 8192 ||
-      decoded.width % width || decoded.height % height ||
-      !validInteger(start, 0, (decoded.width / width) * (decoded.height / height) - frames)) {
+      !validInteger(sourceWidth, 1, decoded.width) || !validInteger(sourceHeight, 1, decoded.height) ||
+      decoded.width % sourceWidth || decoded.height % sourceHeight ||
+      !validInteger(start, 0, (decoded.width / sourceWidth) * (decoded.height / sourceHeight) - frames)) {
     throw new Error('ขนาด PNG หรือจำนวนเฟรมไม่ตรงกับกริด');
   }
   images.set(image, decoded);
   return { id, name: name.trim(), category: category.trim(), width, height, frames, fps, image,
-    pngFile, ppu: validInteger(raw.ppu, 1, 1024) ? raw.ppu : 64,
+    pngFile, sourceWidth, sourceHeight, ppu: validInteger(raw.ppu, 1, 1024) ? raw.ppu : 64,
     loop: raw.loop !== false, start, group, pivot: raw.pivot === 'feet' ? 'feet' : 'center' };
 }
 
