@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#141414">
+  <title>Pixel Vault — Pixel FX Library</title>
+  <link rel="stylesheet" href="style.css">
+  <script defer src="effects.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="./"><span aria-hidden="true">✦</span> PIXEL VAULT</a>
+    <div class="actions">
+      <button id="load-library">Import library</button>
+      <button id="save-library">Export library</button>
+      <button class="accent" id="add">＋ Add sprite sheet</button>
+      <input id="library-file" type="file" accept=".json,application/json" hidden>
+    </div>
+  </header>
+  <main>
+    <section class="intro">
+      <h1>Pixel FX<span>.</span></h1>
+      <p>คลังเอฟเฟกต์พิกเซลสำหรับเกมของคุณ</p>
+    </section>
+    <div class="workspace">
+      <section class="library" aria-label="คลังเอฟเฟกต์">
+        <div class="library-head"><h2>Library</h2><span id="count"></span></div>
+        <input type="search" id="search" placeholder="Search effects…" aria-label="ค้นหาเอฟเฟกต์">
+        <div id="filters" class="filters" aria-label="หมวดหมู่"></div>
+        <div id="gallery" class="gallery"></div>
+      </section>
+      <section class="studio" aria-label="ตัวอย่างและส่งออก">
+        <div class="studio-head">
+          <div><p class="category" id="category"></p><h2 id="title"></h2></div>
+          <span class="spec" id="spec"></span>
+        </div>
+        <div id="stage" class="stage" data-backdrop="grid">
+          <canvas id="preview" aria-label="ภาพตัวอย่างเอฟเฟกต์"></canvas>
+          <span id="frame-number"></span>
+        </div>
+        <div class="timeline">
+          <button id="play" aria-label="เล่นหรือหยุดตัวอย่าง">Ⅱ Pause</button>
+          <button id="restart" aria-label="เริ่มใหม่">↺</button>
+          <input id="frame" type="range" min="0" value="0" aria-label="เฟรม">
+        </div>
+        <div class="controls">
+          <label>Backdrop <select id="backdrop"><option value="grid">Checker</option><option value="dark">Dark</option><option value="light">Light</option></select></label>
+          <label>Palette <select id="palette"><option value="original">Original</option><option value="ember">Ember</option><option value="mint">Mint</option><option value="violet">Violet</option><option value="ice">Ice</option></select></label>
+          <label>FPS <input id="fps" type="number" min="1" max="60" step="1" required></label>
+          <label>PPU <input id="ppu" type="number" min="1" max="1024" step="1" value="64" required></label>
+          <label class="check"><input id="mirror" type="checkbox"> Mirror</label>
+          <label class="check"><input id="loop" type="checkbox"> Loop</label>
+          <button id="seed">↻ New seed</button>
+        </div>
+        <div class="export">
+          <div><button id="sheet">Sprite sheet</button><button id="remove" hidden>ลบจากคลังเครื่องนี้</button></div>
+          <button id="export" class="accent">↓ Export Unity ZIP</button>
+        </div>
+      </section>
+    </div>
+    <p role="status" id="status"></p>
+  </main>
+  <dialog id="upload">
+    <form id="upload-form">
+      <div class="library-head"><h2>Add sprite sheet</h2><button type="button" id="close-upload" aria-label="ปิด">×</button></div>
+      <label>PNG sprite sheet <input name="image" type="file" accept="image/png,.png" required></label>
+      <label>ชื่อ <input name="name" maxlength="80" required></label>
+      <label>หมวดหมู่ <input name="category" maxlength="30" value="Custom" required></label>
+      <div class="fields">
+        <label>Frame width <input name="width" type="number" value="64" min="1" max="512" required></label>
+        <label>Frame height <input name="height" type="number" value="64" min="1" max="512" required></label>
+        <label>Frames <input name="frames" type="number" value="16" min="1" max="120" required></label>
+        <label>FPS <input name="fps" type="number" value="12" min="1" max="60" required></label>
+      </div>
+      <p>ใช้กริดเฟรมขนาดเท่ากัน เรียงจากซ้ายไปขวาและบนลงล่าง</p>
+      <p role="alert" id="upload-error"></p>
+      <button class="accent" type="submit">บันทึกเข้าคลัง</button>
+    </form>
+  </dialog>
+  <dialog id="sheet-dialog">
+    <div class="library-head"><h2>Sprite sheet</h2><button id="close-sheet" aria-label="ปิด">×</button></div>
+    <div class="sheet-scroll"><canvas id="sheet-preview"></canvas></div>
+  </dialog>
+</body>
+</html>
